@@ -1,12 +1,14 @@
 #include "ofxStableGate.h"
 
 ofxStableGate:: ofxStableGate()
-:top(0), left(0), width(160), height(120), maxValue(1), minValue(-1), sampleSize(160){
+:top(0), left(0), width(160), height(120), maxValue(&dMax), minValue(&dMin), sampleSize(160){
 	isVisible	= true;
 	bUseDelay	= false;
 	bUseMean	= false;
-	padding		= 5;
-
+	padding		= 2;
+	textH		= 18;
+	dMax		= 1;
+	dMin		=-1;
 	
 	// gate closed by default
 	gateState	= 0;
@@ -95,11 +97,11 @@ void ofxStableGate::processDelay(){
 		
 		// if prev state is closed try to open, else nothing
 		if (!gateState) {
-			
 			// if timer has finished, open
 			if( lastTimeClosed + openDelay < ofGetElapsedTimef()){
 				// open gate
 				gateState=true;
+				onChange();
 				ofLogVerbose("gate") << "open";
 			}
 		}
@@ -116,6 +118,7 @@ void ofxStableGate::processDelay(){
 			if( lastTimeOpen + closeDelay < ofGetElapsedTimef()){
 				// close gate
 				gateState=false;
+				onChange();
 				ofLogVerbose("gate") << "closed";
 			}
 		}
@@ -124,13 +127,18 @@ void ofxStableGate::processDelay(){
 }
 
 //--------------------------------------------------------------
+void ofxStableGate::onChange(){
+	ofNotifyEvent(gateEvent, gateState, this);
+}
+
+
+//--------------------------------------------------------------
 void ofxStableGate::reset(){
 	
 }
 
 //--------------------------------------------------------------
 bool ofxStableGate::getState(){
-
 }
 
 //--------------------------------------------------------------
@@ -139,28 +147,32 @@ void ofxStableGate::draw(){
 	if (isVisible){
 		ofPushStyle();
 		ofPushMatrix();
-		ofTranslate(left, top);
+		ofSetLineWidth(1);
 		
-		// draw text
-		ofPushMatrix();
-		ofTranslate(0, -15);
-		ofSetColor(20);
-		ofRect(0, 0, width, 15);
-		ofSetHexColor(0x00ffff);
-		ofDrawBitmapString("Gate " + ofToString(gateState), 2, 12);
-		ofPopMatrix();
+		ofTranslate(left, top);
+
+		// draw bounds
+		ofNoFill();
+		ofSetColor(100);
+		ofRect(0, 0, width , (textH+height+textH+textH));
+		
+		// draw text Input
+		ofFill();
+		ofSetColor(60);
+		ofRect(0, 0, width, textH);
+		ofSetColor(ofColor::white);
+		ofDrawBitmapString("Input " + ofToString(*input), padding, textH-4);
 		
 		// draw input
-		ofSetColor(0, 0, 0, 204);
+		ofTranslate(0, textH);
+		ofSetColor(100);
 		ofRect(0, 0, width , height);
-		ofSetColor(ofColor::cyan);
-		ofSetLineWidth(1);
-		for (int i = 0; i < width; i++) {
+		for (int i = 0; i < width-1; i++) {
 			int sample = (int) ofMap(i, 0, width, 0, inputQ.size(), true);
-			float length = ofMap(inputQ[sample], minValue, maxValue, -height/2, height/2,true);
+			float length = ofMap(inputQ[sample], *minValue, *maxValue, -height/2, height/2,true);
 			(length>0) ? ofSetColor(ofColor::green): ofSetColor(ofColor::red);
 			
-			int startX = width;
+			int startX = width-1;
 			int startY = height/2;
 			ofLine(startX - i, startY, startX - i, startY - length);
 		
@@ -169,23 +181,26 @@ void ofxStableGate::draw(){
 				ofLine(startX - i, startY - (outputQ[sample] * startY), startX - i, startY - (outputQ[sample] * startY)+1);
 			}
 		}
-
-		// middle line at 0
 		ofSetColor(ofColor::yellow);
-		ofLine(0, height/2, width, height/2);
+		ofLine(0, height/2, width, height/2);		// middle line at 0
+
+		// draw text output
+		ofTranslate(0, height);
+		ofSetColor(60);
+		ofRect(0, 0, width, textH);
+		ofSetColor(ofColor::white);
+		ofDrawBitmapString("Output " + ofToString(gateState), padding, textH-4);
 
 		// draw output
-		int h = 20;
-		ofTranslate(0, height);
-		
-		for (int i = 0; i < width; i++) {
+		ofTranslate(0, textH);
+		for (int i = 0; i < width-1; i++) {
 			int sample = (int) ofMap(i, 0, width, 0, outputQ.size(), true);
 			float length = outputQ[sample];
 			(length>0) ? ofSetColor(ofColor::green): ofSetColor(ofColor::red);
-			int startX = width;
-			ofLine(startX - i, 0, startX - i, h);
+			int startX = width-1;
+			ofLine(startX - i, 0, startX - i, textH);
 		}
-
+		
 		ofPopMatrix();
 		ofPopStyle();
 	}
@@ -197,12 +212,18 @@ void ofxStableGate::setVisible(bool enabled){
 }
 
 //--------------------------------------------------------------
-void ofxStableGate::setMaxValue(float _maxValue){
-    maxValue = _maxValue;
+void ofxStableGate::setMaxMin(float& _maxValue, float& _minValue){
+    maxValue = &_maxValue;
+    minValue = &_minValue;
+}
+
+//--------------------------------------------------------------
+void ofxStableGate::setMaxValue(float& _maxValue){
+    maxValue = &_maxValue;
 }
 //--------------------------------------------------------------
-void ofxStableGate::setMinValue(float _minValue){
-    minValue = _minValue;
+void ofxStableGate::setMinValue(float& _minValue){
+    minValue = &_minValue;
 }
 
 //--------------------------------------------------------------

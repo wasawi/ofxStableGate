@@ -26,8 +26,9 @@ public:
 
 	
 	void	setVisible(bool enabled);
-	void	setMaxValue(float maxValue);
-	void	setMinValue(float minValue);
+	void	setMaxMin(float& _maxValue, float& _minValue);
+	void	setMaxValue(float& maxValue);
+	void	setMinValue(float& minValue);
 	void	setPosition(float left, float top);
 	void	setSize(float width, float height);
 	bool	getState();
@@ -39,11 +40,13 @@ public:
 	// be careful this method won't be too stable in certain cases.
 	void	useMean( int size );
 
+	//Events
+	ofEvent <float>	gateEvent;
 	
 private:
-	
-	void processDelay();
-	void processMean();
+	void	onChange();
+	void	processDelay();
+	void	processMean();
 	
 	int		top;
     int		left;
@@ -51,10 +54,12 @@ private:
     int		height;
 	int		lapTime;
 	int		padding;
-    float	maxValue;
-    float	minValue;
+	int		textH;
+    float*	maxValue;
+    float*	minValue;
 	int		sampleSize;
-	
+	float	dMax;
+	float	dMin;
 	
 	// Delay params
 	float	lastTimeClosed;
@@ -65,12 +70,13 @@ private:
 	// Average params
 	int		qLength;
 	
-	float	gateState;
+
 	bool	bUseDelay;
 	bool	bUseMean;
 	bool	isVisible;
 	
 	float*	input;
+	float	gateState;
 	
 	deque<float> inputQ;
 	deque<float> outputQ;
